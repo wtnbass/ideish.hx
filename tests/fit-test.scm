@@ -1,0 +1,18 @@
+(require "check.scm")
+(require "../core/fit.scm")
+
+(define ws (list 10 10 10 10 10))
+(check "everything fits" (tab-window ws 2 0 100) (cons 0 5))
+(check "the window stays put while the focused tab is visible" (tab-window ws 1 0 30) (cons 0 3))
+(check "moving right shifts only as far as needed" (tab-window ws 3 0 30) (cons 1 4))
+(check "moving left of the window starts at the focused tab" (tab-window ws 1 3 30) (cons 1 4))
+(check "the end of the list pulls the window back" (tab-window ws 4 4 30) (cons 2 5))
+(check "a focused tab wider than the budget still shows" (tab-window (list 10 50 10) 1 0 30) (cons 1 2))
+
+;; segments: (priority . width)
+(define segs (list (cons 5 10) (cons 9 10) (cons 1 10)))
+(check "all segments fit" (fit-segments segs 2 20 60) (list 0 1 2))
+(check "the lowest priority goes first" (fit-segments segs 2 20 50) (list 0 1))
+(check "then the next lowest" (fit-segments segs 2 20 40) (list 1))
+(check "nothing fits" (fit-segments segs 2 20 25) '())
+(check-summary!)
