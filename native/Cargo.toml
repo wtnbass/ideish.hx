@@ -1,0 +1,18 @@
+[package]
+name = "ideish"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Native side of ideish.hx: filesystem events and git status for Steel-enabled Helix"
+
+[lib]
+name = "ideish"
+crate-type = ["cdylib"]
+
+[dependencies]
+# Same steel revision as the Steel-enabled Helix build, so the FFI layout matches
+steel-core = { git = "https://github.com/mattwparas/steel.git", rev = "24cd21598c091fb88bc10a6375a1ded25e677c37", features = ["dylibs", "sync"] }
+abi_stable = "0.11.1"
+notify = "8"
+notify-debouncer-full = "0.6"
+ignore = "0.4"
