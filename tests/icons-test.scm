@@ -1,0 +1,13 @@
+(require "check.scm")
+(require "../icons/icons.scm")
+
+(check "a known filename" (icon-class (file-icon "Cargo.toml")) (icon-class (file-icon "cargo.toml")))
+(check "filenames match case-insensitively" (file-icon "MAKEFILE") (file-icon "makefile"))
+(check "an extension" (icon-class (file-icon "main.rs")) 'orange)
+(check "compound extensions win over the last one" (equal? (file-icon "a.d.ts") (file-icon "a.ts")) #f)
+(check "an unknown file gets the default class" (icon-class (file-icon "something.unknownext")) 'grey)
+(check "a scheme file" (icon-glyph (file-icon "init.scm")) (icon-glyph (file-icon "x.scm")))
+(check "open and closed folders differ" (equal? (dir-icon "src" #t) (dir-icon "src" #f)) #f)
+(check "special folders" (icon-class (dir-icon ".git" #f)) 'orange)
+(check "git markers are letters" (icon-glyph (ui-icon 'git-modified)) "M")
+(check-summary!)
