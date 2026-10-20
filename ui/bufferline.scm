@@ -61,22 +61,25 @@
 (define (tab-fragments doc active? base label-width)
   (define styles (tab-styles base active?))
   (define body (cdr styles))
+  ;; the tab is drawn on the bar's base, so every run needs the tab's own style
+  (define (on-body frag) (cons (car frag) (or (cdr frag) body)))
   (define path (buffer-path doc))
   (define name (buffer-label doc))
   (define unsaved? (safe (lambda () (editor-document-dirty? doc))))
   (define icon (and path (file-icon name)))
   (pill-fragments
-   (append (list (cons " " #f))
-           ;; on the highlighted tab the icon takes the tab's text colour
-           (if icon
-               (list (cons (icon-glyph icon) (if active? #f (icon-style icon body))) (cons " " #f))
-               '())
-           (list (cons (if label-width (truncate-text name label-width) name) #f))
-           (if unsaved?
-               (let ([mark (ui-icon 'unsaved)])
-                 (list (cons " " #f) (cons (icon-glyph mark) (if active? #f (icon-style mark body)))))
-               '())
-           (list (cons " " #f)))
+   (map on-body
+        (append (list (cons " " #f))
+                ;; on the highlighted tab the icon takes the tab's text colour
+                (if icon
+                    (list (cons (icon-glyph icon) (if active? #f (icon-style icon body))) (cons " " #f))
+                    '())
+                (list (cons (if label-width (truncate-text name label-width) name) #f))
+                (if unsaved?
+                    (let ([mark (ui-icon 'unsaved)])
+                      (list (cons " " #f) (cons (icon-glyph mark) (if active? #f (icon-style mark body)))))
+                    '())
+                (list (cons " " #f))))
    (car styles)
    body))
 
