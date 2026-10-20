@@ -1,8 +1,8 @@
 #!/bin/sh
 # Smoke test: start Helix with dev/init.scm in tmux and check that the bars,
 # the tree, the agent and the terminal draw. Layout and tree logic are covered
-# by `make test`. The terminal checks are skipped when libideish was built
-# without it (make install TERMINAL=1).
+# by `mise run test`. The terminal checks are skipped when libideish was built
+# without it (mise run install --terminal).
 cd "$(dirname "$0")/.."
 ROOT=$PWD
 WS=$(mktemp -d)

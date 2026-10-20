@@ -1,5 +1,5 @@
 ;; dev config: HELIX_STEEL_CONFIG=$PWD/dev hx
-;; loads ideish from this checkout; build libideish first with `make install`
+;; loads ideish from this checkout; build libideish first with `mise run install`
 (require "../ideish.scm")
 (require "helix/keymaps.scm")
 
