@@ -125,7 +125,7 @@ While a permission request is pending: ↑ ↓ or `j` `k` to choose, a number to
 ## Development
 
 ```sh
-make native   # build libideish into ~/.local/share/steel/native
+make install  # install this checkout with forge (cog and libideish)
 make test     # unit tests, under the steel CLI
 make smoke    # start Helix with dev/init.scm in tmux and check that the parts draw
 make icons    # regenerate icons/catalog.scm from nvim-web-devicons
