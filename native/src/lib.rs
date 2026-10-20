@@ -1,7 +1,7 @@
 //! Native side of ideish.hx.
 //!
-//! Filesystem events, `git status` and agent processes all run on Rust threads
-//! and are queued here. Helix's main thread drains the queue from a tick, so no Steel code runs
+//! Filesystem events, `git status`, agent processes and terminals all run on
+//! Rust threads and are queued here. Helix's main thread drains the queue from a tick, so no Steel code runs
 //! off the main thread (see mattwparas/helix#138).
 
 use std::{
@@ -23,6 +23,7 @@ use steel::{
 };
 
 mod agent;
+mod terminal;
 
 steel::declare_module!(build_module);
 
@@ -36,6 +37,7 @@ pub fn build_module() -> FFIModule {
         .register_fn("watcher-git-status!", Watcher::git_status)
         .register_fn("watcher-git?", Watcher::has_git);
     agent::register(&mut module);
+    terminal::register(&mut module);
     module
 }
 

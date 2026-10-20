@@ -8,12 +8,14 @@
 ;;   (ideish-statusline!)
 ;;   (ideish-tree! #:side 'left #:width 30)
 ;;   (ideish-agent!)
+;;   (ideish-terminal!)
 ;;
 ;; and bind the commands in config.toml:
 ;;
 ;;   space.e = ":ideish-focus tree"
 ;;   space.E = ":ideish-toggle tree"
 ;;   ret.a = ":ideish-toggle agent"
+;;   ret.t = ":ideish-toggle terminal"
 
 (require "core/host.scm")
 (require "core/theme.scm")
@@ -23,6 +25,7 @@
 (require "ui/breadcrumb.scm")
 (require "ui/tree.scm")
 (require "ui/agent.scm")
+(require "ui/terminal.scm")
 (require "ui/notice.scm")
 (require "agent/registry.scm")
 
@@ -31,6 +34,7 @@
          ideish-breadcrumb!
          ideish-tree!
          ideish-agent!
+         ideish-terminal!
          ideish-icon-scopes!
          ideish-pill-style!
          ideish-focus
@@ -125,6 +129,18 @@
 (define (ideish-agent-cancel) (agent-cancel!))
 
 ;;@doc
-;; Show which agents are installed: :ideish-health
+;; Add the terminal pane at the bottom, below the statusline and the message
+;; row. It starts hidden; :ideish-toggle terminal shows it and starts $SHELL, or
+;; #:command '("program" "arg" ...). #:height counts rows.
+;; Every key goes to the shell, Esc too; C-\ gives the keys back to the editor.
+(define (ideish-terminal! #:height [height 12] #:command [command #f])
+  (terminal-enable! #:height height #:command command))
+
+;;@doc
+;; Show which agents are installed and whether the terminal is built: :ideish-health
 (define (ideish-health)
-  (show-notice! "ideish health" (cons "Agents" (map (lambda (l) (string-append "  " l)) (agent-health-lines)))))
+  (define (section title lines) (cons title (map (lambda (l) (string-append "  " l)) lines)))
+  (show-notice! "ideish health"
+                (append (section "Agents" (agent-health-lines))
+                        (list "")
+                        (section "Terminal" (terminal-health-lines)))))

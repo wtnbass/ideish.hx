@@ -1,0 +1,3 @@
+[tools]
+# libghostty-vt (the terminal, built with --cfg ideish_terminal) needs this Zig (0.15 cannot link on macOS 26)
+zig = "0.16"

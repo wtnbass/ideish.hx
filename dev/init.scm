@@ -12,9 +12,11 @@
   (if (Ok? agent)
       (ideish-agent! #:command (split-many (Ok->value agent) " "))
       (ideish-agent!)))
+(ideish-terminal!)
 
 (keymap (global)
         (normal (space (e ":ideish-focus tree")
                        (E ":ideish-toggle tree"))
                 (ret (a ":ideish-toggle agent")
-                     (s ":ideish-agent-add-selection"))))
+                     (s ":ideish-agent-add-selection")
+                     (t ":ideish-toggle terminal"))))
