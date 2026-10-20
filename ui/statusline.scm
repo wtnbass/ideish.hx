@@ -153,11 +153,17 @@
 
 ;;; the bar
 
+;; the theme's statusline colours, so the bar marks the editor's bottom edge
+;; above the terminal; ui.background when the theme gives the bar no background
+(define (bar-style)
+  (define bar (theme-scope-ref "ui.statusline"))
+  (if (style->bg bar) bar (theme-scope-ref "ui.background")))
+
 (define (render a frame)
   (define x (area-x a))
   (define y (area-y a))
   (define width (area-width a))
-  (define base (theme-scope-ref "ui.background"))
+  (define base (bar-style))
   (fill-row! frame x y width base)
   (define mode (mode-label base))
   (define file (file-label base))
