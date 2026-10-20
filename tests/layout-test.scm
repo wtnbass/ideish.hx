@@ -29,6 +29,18 @@
 (check "top bars stack downwards" (layout-rect-of stacked 'crumbs) (rect 0 1 100 1))
 (check "stacked top bars add to the top clip" (layout-clip stacked) (list 0 0 2 0))
 
+(define term (spec 'terminal 'pane 'bottom 10))
+(define docked (compute-layout 200 50 (list tree agent tabs status term)))
+(check "a bottom pane takes the last rows of the centre column" (layout-rect-of docked 'terminal) (rect 30 40 110 10))
+;; row 39 is left to Helix's messages, which it draws on the clipped area's last row
+(check "the bottom bars sit above the message row" (layout-rect-of docked 'statusline) (rect 30 38 110 1))
+(check "side panes keep the full height" (layout-rect-of docked 'tree) (rect 0 0 30 49))
+(check "the bottom clip covers the pane only" (layout-clip docked) (list 30 60 1 10))
+
+(define short (compute-layout 100 12 (list tabs status term)))
+(check "a bottom pane shrinks so the editor keeps 5 rows" (layout-rect-of short 'terminal) (rect 0 7 100 5))
+(check "a bottom pane squeezed to nothing is dropped" (layout-rect-of (compute-layout 100 7 (list tabs status term)) 'terminal) #f)
+
 (check "rect-contains? includes the origin" (rect-contains? (rect 2 3 4 5) 2 3) #t)
 (check "rect-contains? excludes the far edge" (rect-contains? (rect 2 3 4 5) 6 3) #f)
 
