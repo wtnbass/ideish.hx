@@ -299,6 +299,9 @@
   (ensure-rows!)
   (define kind (event-mouse-kind event))
   (define i (+ *scroll* (- (event-mouse-row event) (area-y a) 1)))
+  (define (focus!)
+    (unless (host-focused? 'tree)
+      (enqueue-thread-local-callback (lambda () (host-focus! 'tree)))))
   (cond
     [(equal? kind 10) (scroll! 3)]
     [(equal? kind 11) (scroll! -3)]
@@ -306,8 +309,12 @@
      (set-cursor! i)
      (let ([r (row-at i)])
        (if (row-dir? r)
-           (toggle-dir! (row-path r))
-           (open-file! (row-path r) 'open)))])
+           (begin (toggle-dir! (row-path r)) (focus!))
+           ;; a file opens in the editor, which keeps the keys, as with Enter
+           (open-file! (row-path r) 'open)))]
+    ;; the header or the empty rows below the entries
+    [(equal? kind 0) (focus!)]
+    [else void])
   event-result/consume)
 
 ;;; drawing

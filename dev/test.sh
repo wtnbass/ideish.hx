@@ -42,6 +42,12 @@ expect "^ [^ ]+ a\.txt *$" "breadcrumb shows the focused file"
 tmux send-keys -t $S Space e
 expect "$(basename "$WS")" "tree header shows the workspace"
 expect "src" "tree lists the workspace"
+# a click below the entries focuses the tree, whose q then hides it
+tmux send-keys -t $S Escape; sleep 0.3
+tmux send-keys -t $S -l "$(printf '\033[<0;5;20M\033[<0;5;20m')"; sleep 0.5
+tmux send-keys -t $S q
+absent "$(basename "$WS")" "a click focuses the tree"
+tmux send-keys -t $S Space e
 # Esc then Enter too quickly reads as Alt-Enter
 tmux send-keys -t $S Escape; sleep 0.3; tmux send-keys -t $S Enter a
 expect "Fake Agent" "agent pane starts the agent"
