@@ -24,6 +24,7 @@
 (require "ui/bufferline.scm")
 (require "ui/breadcrumb.scm")
 (require "ui/tree.scm")
+(require "ui/diff.scm")
 (require "ui/agent.scm")
 (require "ui/terminal.scm")
 (require "ui/notice.scm")
@@ -41,6 +42,8 @@
          ideish-toggle
          ideish-close
          ideish-tree-reveal
+         ideish-changes
+         ideish-diff
          ideish-agent-add-selection
          ideish-agent-add-file
          ideish-agent-new
@@ -98,6 +101,15 @@
 (define (ideish-tree-reveal)
   (host-focus! 'tree)
   (tree-reveal-current!))
+
+;;@doc
+;; Focus the tree listing the files git reports as changed. Enter shows a
+;; file's diff against HEAD over the editor; c in the tree switches back.
+(define (ideish-changes) (tree-show-changes!))
+
+;;@doc
+;; Show the current file's diff against HEAD over the editor.
+(define (ideish-diff) (diff-show-current!))
 
 ;;@doc
 ;; Add the agent pane on the right. It starts hidden; :ideish-toggle agent

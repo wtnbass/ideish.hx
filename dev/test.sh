@@ -1,8 +1,8 @@
 #!/bin/sh
 # Smoke test: start Helix with dev/init.scm in tmux and check that the bars,
-# the tree, the agent and the terminal draw. Layout and tree logic are covered
-# by `mise run test`. The terminal checks are skipped when libideish was built
-# without it (mise run install --terminal).
+# the tree, a diff, the agent and the terminal draw. Layout and tree logic are
+# covered by `mise run test`. The terminal checks are skipped when libideish
+# was built without it (mise run install --terminal).
 cd "$(dirname "$0")/.."
 ROOT=$PWD
 WS=$(mktemp -d)
@@ -47,6 +47,16 @@ tmux send-keys -t $S Escape; sleep 0.3
 tmux send-keys -t $S -l "$(printf '\033[<0;5;20M\033[<0;5;20m')"; sleep 0.5
 tmux send-keys -t $S q
 absent "$(basename "$WS")" "a click focuses the tree"
+# changes mode lists what git reports and shows a file's diff over the editor
+echo two > "$WS/a.txt"
+tmux send-keys -t $S -l ':ideish-changes'; tmux send-keys -t $S Enter
+expect "Changes 1" "changes mode lists the changed file"
+tmux send-keys -t $S Enter
+expect "HEAD → working tree +\+1 -1" "Enter shows the diff against HEAD"
+expect "1 +- one" "the diff shows the old line"
+# q goes back to the tree, c to the files, q hides the tree
+tmux send-keys -t $S q c q
+absent "HEAD → working tree" "q closes the diff"
 tmux send-keys -t $S Space e
 # Esc then Enter too quickly reads as Alt-Enter
 tmux send-keys -t $S Escape; sleep 0.3; tmux send-keys -t $S Enter a

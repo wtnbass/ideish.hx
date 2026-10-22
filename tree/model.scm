@@ -17,6 +17,7 @@
          tree-invalidate-all!
          tree-rows
          tree-open-dirs
+         changed-paths
          parent-path
          path-within?
          row row? row-path row-name row-depth row-dir? row-open?)
@@ -111,3 +112,20 @@
                 [(not (path-within? d root)) #f]
                 [else (loop (parent-path d))])))
           (hash-keys->list (tree-open t))))
+
+;; The changed files under root, by path: entries is (path . status) as git
+;; reported them, where a directory carries the status of what is below it and
+;; an untracked directory stands for its contents
+(define (changed-paths entries root)
+  (define changed (filter (lambda (e) (and (not (equal? (cdr e) 'ignored))
+                                           (path-within? (car e) root)
+                                           (not (equal? (car e) root))))
+                          entries))
+  (define (has-changes-below? path)
+    (let loop ([es changed])
+      (cond
+        [(null? es) #f]
+        [(and (not (equal? (car (car es)) path)) (path-within? (car (car es)) path)) #t]
+        [else (loop (cdr es))])))
+  (sort (filter (lambda (e) (not (has-changes-below? (car e)))) changed)
+        (lambda (a b) (string<? (car a) (car b)))))

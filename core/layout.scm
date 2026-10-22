@@ -11,6 +11,9 @@
 ;; the clipped area, so they land in the row between the bottom bars and the
 ;; bottom panes, which nothing draws over; the : prompt still takes the last
 ;; row while it is open.
+;;
+;; A centre pane lies over the editor's area, between the top and the bottom
+;; bars, and clips nothing: the editor keeps its size underneath.
 
 (provide spec spec? spec-name spec-kind spec-edge spec-size
          rect rect? rect-x rect-y rect-width rect-height
@@ -21,8 +24,9 @@
          *min-editor-width*
          *min-editor-height*)
 
-;; name: symbol, kind: 'pane or 'bar, edge: 'left 'right 'top 'bottom,
-;; size: columns for a side pane, rows for a bar or a bottom pane
+;; name: symbol, kind: 'pane or 'bar, edge: 'left 'right 'top 'bottom 'centre,
+;; size: columns for a side pane, rows for a bar or a bottom pane, any positive
+;; number for a centre pane
 (struct spec (name kind edge size))
 
 (struct rect (x y width height) #:transparent)
@@ -71,6 +75,10 @@
   (define right-width (sum-sizes rights))
   (define centre-x left-width)
   (define centre-width (max 0 (- width left-width right-width)))
+  (define tops-height (sum-sizes tops))
+  (define centre-height (max 0 (- height 1 bottoms-height bottom-bars-height tops-height)))
+  (define centres (map (lambda (s) (cons (spec-name s) (rect centre-x tops-height centre-width centre-height)))
+                       (of-edge all-panes 'centre)))
 
   (define (place-left ss x)
     (if (null? ss)
@@ -103,8 +111,9 @@
                   (place-right rights width)
                   (place-top tops 0)
                   (place-bottom bottoms height)
-                  (place-bottom bottom-bars (- height 1 bottoms-height)))
-          (list left-width right-width (sum-sizes tops) bottoms-height)))
+                  (place-bottom bottom-bars (- height 1 bottoms-height))
+                  centres)
+          (list left-width right-width tops-height bottoms-height)))
 
 (define (layout-rect-of l name)
   (define hit (assoc name (layout-rects l)))

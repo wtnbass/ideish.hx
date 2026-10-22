@@ -3,6 +3,9 @@
 ;; Directory listings are cached in tree/model.scm and dropped only when the
 ;; watcher reports a change in that directory, so the tree follows the disk
 ;; without polling. Git status colours names and adds a marker on the right.
+;;
+;; In changes mode the pane lists the files git reports as changed instead,
+;; and opens their diff against HEAD over the editor (ui/diff.scm).
 
 (require "helix/components.scm")
 (require "helix/misc.scm")
@@ -16,9 +19,11 @@
 (require "../core/watch.scm")
 (require "../icons/icons.scm")
 (require "../tree/model.scm")
+(require "diff.scm")
 
 (provide tree-enable!
-         tree-reveal-current!)
+         tree-reveal-current!
+         tree-show-changes!)
 
 (define *side* 'left)
 (define *width* 30)
@@ -30,6 +35,8 @@
 (define *always-hidden* (hash ".git" #t ".DS_Store" #t))
 
 (define *tree* #f)
+;; 'files or 'changes
+(define *mode* 'files)
 (define *rows* (list->vector '()))
 (define *rows-dirty* #t)
 (define *rows-git-revision* -1)
@@ -61,19 +68,29 @@
       [(equal? (row-path (vector-ref *rows* i)) path) i]
       [else (loop (+ i 1))])))
 
+(define (changes?) (equal? *mode* 'changes))
+
+(define (change-rows)
+  (map (lambda (e)
+         (define path (car e))
+         (row path (file-name path) 0 (or (safe (lambda () (is-dir? path))) #f) #f))
+       (changed-paths (git-statuses) (root))))
+
 (define (rebuild!)
-  ;; the first row is the workspace root, shown as the header instead
-  (set! *rows* (list->vector (cdr (tree-rows *tree* list-dir skip?))))
+  (set! *rows* (list->vector (if (changes?)
+                                 (change-rows)
+                                 ;; the first row is the workspace root, shown as the header instead
+                                 (cdr (tree-rows *tree* list-dir skip?)))))
   (set! *rows-dirty* #f)
   (set! *rows-git-revision* (git-revision))
-  (watch-set-dirs! (tree-open-dirs *tree*))
+  (unless (changes?) (watch-set-dirs! (tree-open-dirs *tree*)))
   ;; keep the cursor on the same entry when rows move around it
   (define same (and *cursor-path* (index-of-path *cursor-path*)))
   (set-cursor! (or same (min *cursor* (max 0 (- (row-count) 1))))))
 
 (define (ensure-rows!)
   (when (or *rows-dirty*
-            (and (not *show-ignored*) (not (= *rows-git-revision* (git-revision)))))
+            (and (or (changes?) (not *show-ignored*)) (not (= *rows-git-revision* (git-revision)))))
     (rebuild!)))
 
 (define (mark-dirty!) (set! *rows-dirty* #t))
@@ -122,13 +139,43 @@
   (tree-toggle! *tree* path)
   (rebuild!))
 
+;;; changes
+
+;; an untracked directory has no diff of its own
+(define (show-diff! r focus?)
+  (if (row-dir? r)
+      (set-status! (string-append (rel (row-path r)) "/ is untracked"))
+      (diff-show! (row-path r) #:focus focus?)))
+
+;; while a diff is on screen it follows the cursor
+(define (follow-diff!)
+  (define r (current-row))
+  (when (and (changes?) r (not (row-dir? r))
+             (diff-shown-path) (not (equal? (diff-shown-path) (row-path r))))
+    (show-diff! r #f)))
+
+(define (set-mode! mode)
+  (unless (equal? mode *mode*)
+    (set! *mode* mode)
+    (set! *scroll* 0)
+    (rebuild!)))
+
+(define (tree-show-changes!)
+  (when *tree*
+    (set-mode! 'changes)
+    (host-focus! 'tree)))
+
+;; action: 'open, 'vsplit or 'hsplit. In changes mode 'open shows the diff and
+;; 'file opens the file.
 (define (activate! action)
   (define r (current-row))
   (cond
     [(not r) void]
+    [(and (changes?) (equal? action 'open)) (show-diff! r #t)]
+    [(and (changes?) (row-dir? r)) void]
     [(row-dir? r) (toggle-dir! (row-path r))]
     [else
-     (open-file! (row-path r) action)
+     (open-file! (row-path r) (if (equal? action 'file) 'open action))
      (host-blur!)]))
 
 ;; l: open a closed directory, step into an open one, preview a file
@@ -136,6 +183,7 @@
   (define r (current-row))
   (cond
     [(not r) void]
+    [(changes?) (show-diff! r #f)]
     [(and (row-dir? r) (not (row-open? r))) (toggle-dir! (row-path r))]
     [(row-dir? r) (let ([next (row-at (+ *cursor* 1))])
                     (when (and next (> (row-depth next) (row-depth r))) (move! 1)))]
@@ -145,7 +193,7 @@
 (define (collapse-or-parent!)
   (define r (current-row))
   (cond
-    [(not r) void]
+    [(or (not r) (changes?)) void]
     [(and (row-dir? r) (row-open? r)) (toggle-dir! (row-path r))]
     [else (let ([i (index-of-path (parent-path (row-path r)))])
             (when i (set-cursor! i)))]))
@@ -277,9 +325,13 @@
     [(or (key-event-end? event) (equal? ch #\G)) (set-cursor! (- (row-count) 1))]
     [(or (key-event-left? event) (equal? ch #\h)) (collapse-or-parent!)]
     [(or (key-event-right? event) (equal? ch #\l)) (expand-or-preview!)]
-    [(or (key-event-enter? event) (equal? ch #\o)) (activate! 'open)]
+    [(key-event-enter? event) (activate! 'open)]
+    [(equal? ch #\o) (activate! (if (changes?) 'file 'open))]
     [(equal? ch #\v) (activate! 'vsplit)]
     [(equal? ch #\s) (activate! 'hsplit)]
+    [(equal? ch #\c) (set-mode! (if (changes?) 'files 'changes))]
+    ;; the file operations work on the directory listing
+    [(changes?) void]
     [(equal? ch #\a) (prompt-create!)]
     [(equal? ch #\r) (prompt-rename!)]
     [(equal? ch #\d) (confirm-delete!)]
@@ -291,6 +343,7 @@
     [(or (equal? ch #\-) (equal? ch #\<)) (set-width! (- *width* 2))]
     [(equal? ch #\q) (host-hide! 'tree)]
     [else void])
+  (follow-diff!)
   (if (key-event-escape? event) #f event-result/consume))
 
 ;;; mouse
@@ -305,13 +358,16 @@
   (cond
     [(equal? kind 10) (scroll! 3)]
     [(equal? kind 11) (scroll! -3)]
+    [(and (equal? kind 0) (row-at i) (>= i *scroll*) (changes?))
+     (set-cursor! i)
+     (show-diff! (row-at i) #t)]
     [(and (equal? kind 0) (row-at i) (>= i *scroll*))
      (set-cursor! i)
      (let ([r (row-at i)])
        (if (row-dir? r)
            (begin (toggle-dir! (row-path r)) (focus!))
            ;; a file opens in the editor, which keeps the keys, as with Enter
-           (open-file! (row-path r) 'open)))]
+           (begin (open-file! (row-path r) 'open) (host-show-editor!))))]
     ;; the header or the empty rows below the entries
     [(equal? kind 0) (focus!)]
     [else void])
@@ -361,13 +417,16 @@
   (if c (style-fg base c) base))
 
 (define (draw-header! frame x y width base)
-  (define icon (ui-icon 'workspace))
+  (define icon (ui-icon (if (changes?) 'changes 'workspace)))
   (define branch (git-branch))
   (draw-fragments! frame x y width
                    (append (list (cons " " #f)
                                  (cons (icon-glyph icon) (icon-style icon base))
                                  (cons " " #f)
-                                 (cons (file-name (root)) (style-with-bold base)))
+                                 (cons (if (changes?) "Changes" (file-name (root))) (style-with-bold base)))
+                           (if (changes?)
+                               (list (cons (string-append " " (number->string (row-count))) (with-class base 'grey)))
+                               '())
                            (if (and branch (not (equal? branch "")))
                                (list (cons "  " #f) (cons (string-append (icon-glyph (ui-icon 'git-branch)) " " branch)
                                                           (with-class base 'grey)))
@@ -388,12 +447,15 @@
                         (if marker (list (cons (icon-glyph marker) (icon-style marker row-base))) '())))
   (define right-width (+ (fragments-width right) (if (null? right) 0 1)))
   (define indent (make-string (+ 1 (* 2 (row-depth r))) #\space))
+  ;; in changes mode the rows are flat, so the directory follows the name
+  (define dir (and (changes?) (not (equal? (parent-path path) (root))) (rel (parent-path path))))
   (when selected? (fill-row! frame x y width row-base))
   (draw-fragments! frame x y (- width right-width)
-                   (list (cons indent #f)
-                         (cons (icon-glyph icon) (if dim? (with-class row-base 'grey) (icon-style icon row-base)))
-                         (cons " " #f)
-                         (cons (row-name r) name-style))
+                   (append (list (cons indent #f)
+                                 (cons (icon-glyph icon) (if dim? (with-class row-base 'grey) (icon-style icon row-base)))
+                                 (cons " " #f)
+                                 (cons (row-name r) name-style))
+                           (if dir (list (cons (string-append " " dir) (with-class row-base 'grey))) '()))
                    row-base)
   (unless (null? right)
     (draw-fragments! frame (- (+ x width) right-width) y right-width right row-base)))
@@ -423,8 +485,10 @@
   (draw-header! frame inner-x y inner-w base)
   (set! *list-height* (max 1 (- h 1)))
   (scroll! 0)
-  (define active (focused-path))
+  (define active (if (changes?) (diff-shown-path) (focused-path)))
   (define unsaved (unsaved-paths))
+  (when (and (changes?) (= (row-count) 0))
+    (draw-fragments! frame inner-x (+ y 1) inner-w (list (cons " no changes" (with-class base 'grey))) base))
   (let loop ([i 0])
     (when (< i *list-height*)
       (define r (row-at (+ *scroll* i)))

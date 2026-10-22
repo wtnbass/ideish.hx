@@ -72,6 +72,7 @@
         'error (list "󰅙" 'red "#e06c75")           ; nf-md-close_circle
         'warning (list "󰀪" 'yellow "#e5c07b")      ; nf-md-alert
         'unsaved (list "●" 'yellow "#e5c07b")        ; black circle
+        'changes (list "" 'orange "#d19a66")          ; nf-cod-source_control
         'workspace (list "󰙅" 'blue "#61afef")))    ; nf-md-source_repository
 
 (define (ui-icon key)

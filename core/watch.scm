@@ -27,6 +27,7 @@
          git-ahead
          git-behind
          git-status-of
+         git-statuses
          git-revision)
 
 ;; git status runs this long after the last change, so a burst of writes
@@ -53,6 +54,10 @@
 
 ;; 'modified 'added 'deleted 'renamed 'untracked 'ignored 'conflict, or #f
 (define (git-status-of path) (hash-try-get *statuses* path))
+
+;; every path git reported, directories included, as (path . status)
+(define (git-statuses)
+  (map (lambda (path) (cons path (hash-ref *statuses* path))) (hash-keys->list *statuses*)))
 
 ;; proc: (list-of-dirs) -> any
 (define (watch-on-dirs! proc)

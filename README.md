@@ -1,12 +1,13 @@
 # ideish.hx
 
-A UI layer for [Steel-enabled Helix](https://github.com/mattwparas/helix/blob/steel-event-system/STEEL.md): a file tree, a bufferline, a breadcrumb bar, a statusline, an agent pane and a terminal on one layout.
+A UI layer for [Steel-enabled Helix](https://github.com/mattwparas/helix/blob/steel-event-system/STEEL.md): a file tree, a diff view, a bufferline, a breadcrumb bar, a statusline, an agent pane and a terminal on one layout.
 
 ## Parts
 
 | Part | Where | What |
 | --- | --- | --- |
-| Tree | left or right pane | Files with icons and git status, follows the disk without polling, create / rename / delete |
+| Tree | left or right pane | Files with icons and git status, follows the disk without polling, create / rename / delete. In changes mode, the files git reports as changed |
+| Diff | over the editor | A file against HEAD, in the language's syntax colours with added and deleted rows tinted. Follows the file as it changes |
 | Bufferline | top bar | One tab per buffer, clickable, scrolls around the focused tab when they do not fit |
 | Breadcrumb | top bar, below the tabs | The file's path and the scopes around the cursor (function, class, heading, ...), read from the syntax tree |
 | Statusline | bottom bar | Mode, file, agent state, git branch, diagnostics, selections, language servers, file type, position |
@@ -88,6 +89,8 @@ t = ":ideish-toggle terminal"
 | `:ideish-toggle tree` | Show the tree with focus, or hide it |
 | `:ideish-close tree` | Hide the tree |
 | `:ideish-tree-reveal` | Focus the tree on the current file |
+| `:ideish-changes` | Focus the tree in changes mode |
+| `:ideish-diff` | Show the current file's diff against HEAD |
 | `:ideish-toggle agent` | Show the agent pane with focus (starting the agent the first time), or hide it |
 | `:ideish-agent-add-selection` / `:ideish-agent-add-file` | Attach the selection or the current file to the next prompt |
 | `:ideish-agent-new` / `:ideish-agent-cancel` / `:ideish-agent-stop` | New conversation / interrupt the turn / stop the agent |
@@ -108,6 +111,7 @@ t = ":ideish-toggle terminal"
 | `a` | New file in the selected directory; end the name with `/` for a folder |
 | `r` | Rename or move, relative to the entry's directory |
 | `d` | Delete; asks for `y` first |
+| `c` | Switch between the files and the changes |
 | `.` | Show or hide dotfiles |
 | `I` | Show or hide git-ignored entries |
 | `f` | Jump to the current file |
@@ -119,6 +123,21 @@ t = ":ideish-toggle terminal"
 With the mouse, a click opens a file or toggles a directory, and the wheel scrolls. Clicking a tab switches to that buffer.
 
 Git markers: `M` modified, `A` added, `U` untracked, `D` deleted, `R` renamed, `!` conflict. Ignored entries are dimmed.
+
+In changes mode the tree lists the changed files by path. Enter or a click shows a file's diff with focus, `l` shows it and keeps the keys in the tree, and while a diff is on screen it follows the cursor. `o`, `v` and `s` open the file itself; `a`, `r` and `d` do nothing.
+
+## Keys in the diff view
+
+| Key | Action |
+| --- | --- |
+| `j` / `k`, ↓ / ↑ | Move |
+| `Ctrl-d` / `Ctrl-u` | Move half a page |
+| `g` / `G`, Home / End | First / last row |
+| `n` / `N`, `]` / `[` | Next / previous hunk |
+| Enter, `o` | Open the file at the row's line |
+| `q`, Esc | Close the diff; back to the tree when it is open |
+
+The diff compares HEAD with the file on disk, so unsaved edits are not in it. The view closes when the editor gets the keys back, since it covers the editor. Syntax colours come from the language's `highlights.scm` in Helix's runtime directory. `locals.scm` is not read, so a parameter is coloured as a parameter only where it is declared.
 
 ## Keys in the agent pane
 

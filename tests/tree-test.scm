@@ -51,4 +51,11 @@
 (check "path-within? matches children" (path-within? "/w/src/a" "/w/src") #t)
 (check "path-within? rejects siblings with the same prefix" (path-within? "/w/srcx" "/w/src") #f)
 
+(check "changed-paths keeps the files and drops the directories above them"
+       (changed-paths (list (cons "/w/src" 'modified) (cons "/w/src/main.rs" 'modified)
+                            (cons "/w/new" 'untracked) (cons "/w/a.txt" 'deleted)
+                            (cons "/w/target" 'ignored) (cons "/other/x" 'modified))
+                      "/w")
+       (list (cons "/w/a.txt" 'deleted) (cons "/w/new" 'untracked) (cons "/w/src/main.rs" 'modified)))
+
 (check-summary!)

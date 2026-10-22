@@ -41,6 +41,13 @@
 (check "a bottom pane shrinks so the editor keeps 5 rows" (layout-rect-of short 'terminal) (rect 0 7 100 5))
 (check "a bottom pane squeezed to nothing is dropped" (layout-rect-of (compute-layout 100 7 (list tabs status term)) 'terminal) #f)
 
+(define diff (spec 'diff 'pane 'centre 1))
+(define over (compute-layout 200 50 (list tree agent tabs status term diff)))
+(check "a centre pane covers the editor between the bars" (layout-rect-of over 'diff) (rect 30 1 110 37))
+(check "a centre pane clips nothing" (layout-clip over) (layout-clip docked))
+(check "without bars a centre pane reaches the command line"
+       (layout-rect-of (compute-layout 100 30 (list diff)) 'diff) (rect 0 0 100 29))
+
 (check "rect-contains? includes the origin" (rect-contains? (rect 2 3 4 5) 2 3) #t)
 (check "rect-contains? excludes the far edge" (rect-contains? (rect 2 3 4 5) 6 3) #f)
 

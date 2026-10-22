@@ -6,7 +6,8 @@
 ;;
 ;; Focus: a focused part gets keys through a second component pushed on top of
 ;; the stack. Esc, or a click outside the part, pops it and the editor gets
-;; keys again.
+;; keys again. A centre pane hides the editor, so it is hidden whenever the
+;; editor gets the keys back.
 
 (require "helix/components.scm")
 (require "helix/misc.scm")
@@ -24,10 +25,11 @@
          host-hide!
          host-shown?
          host-rect-of
+         host-show-editor!
          host-sync!
          host-request-redraw!)
 
-;; name: symbol, kind: 'pane or 'bar, edge: 'left 'right 'top 'bottom
+;; name: symbol, kind: 'pane or 'bar, edge: 'left 'right 'top 'bottom 'centre
 ;; size: thunk -> columns (pane) or rows (bar); 0 hides the part
 ;; render: (helix-area frame) -> any
 ;; mouse: #f or (event helix-area) -> event result
@@ -183,7 +185,13 @@
      (when (and (equal? (event-mouse-kind event) 0)
                 (not (rect-contains? r (event-mouse-col event) (event-mouse-row event))))
        (set! *focused* #f)
-       (pop-last-component-by-name! "ideish-focus"))
+       (pop-last-component-by-name! "ideish-focus")
+       ;; a click on another pane may focus that one; elsewhere the editor
+       ;; takes the keys
+       (let* ([target (mouse-target event)]
+              [q (and target (find-part (car target)))])
+         (unless (and q (equal? (part-kind q) 'pane))
+           (host-show-editor!))))
      event-result/ignore]
     [else
      (define result (and (part-key p) (safe-call "key" (lambda () ((part-key p) event)))))
@@ -202,6 +210,14 @@
     (set! *shown* (hash-insert *shown* name #t))
     (when (part-on-show p) (safe-call "on-show" (part-on-show p)))
     (host-sync!)))
+
+;; The editor takes the keys: hide the centre panes that cover it
+(define (host-show-editor!)
+  (for-each (lambda (p)
+              (when (equal? (part-edge p) 'centre)
+                (set! *shown* (hash-remove *shown* (part-name p)))))
+            *parts*)
+  (host-sync!))
 
 (define (host-hide! name)
   (when (host-focused? name) (host-blur!))
@@ -224,4 +240,5 @@
   (when *focused*
     (set! *focused* #f)
     (pop-last-component-by-name! "ideish-focus")
+    (host-show-editor!)
     (host-request-redraw!)))
