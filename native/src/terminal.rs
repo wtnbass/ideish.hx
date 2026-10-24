@@ -23,6 +23,7 @@ use steel::{
 
 #[cfg(ideish_terminal)]
 mod ghostty;
+mod keys;
 
 pub fn register(module: &mut FFIModule) {
     module
