@@ -53,10 +53,11 @@ expect "Changes 1" "changes mode lists the changed file"
 tmux send-keys -t $S Enter
 expect "HEAD → working tree +\+1 -1" "Enter shows the diff against HEAD"
 expect "1 +- one" "the diff shows the old line"
-# q goes back to the tree, c to the files, q hides the tree
-tmux send-keys -t $S q c q
+# q goes back to the tree, q hides it
+tmux send-keys -t $S q q
 absent "HEAD → working tree" "q closes the diff"
 tmux send-keys -t $S Space e
+expect "$(basename "$WS")" "the tree shows the files again"
 # Esc then Enter too quickly reads as Alt-Enter
 tmux send-keys -t $S Escape; sleep 0.3; tmux send-keys -t $S Enter a
 expect "Fake Agent" "agent pane starts the agent"

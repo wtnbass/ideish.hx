@@ -126,8 +126,11 @@
        [(equal? action 'hsplit) (helix.hsplit path)]
        [else (helix.open path)]))))
 
+;; also runs when the tree is shown, so it opens on the files again after
+;; :ideish-changes
 (define (tree-reveal-current!)
   (when *tree*
+    (set-mode! 'files)
     (define path (focused-path))
     (when (and path (path-within? path (root)))
       (tree-reveal! *tree* path)
@@ -158,12 +161,15 @@
   (unless (equal? mode *mode*)
     (set! *mode* mode)
     (set! *scroll* 0)
+    ;; a diff over the editor belongs to the changes
+    (unless (changes?) (host-hide! 'diff))
     (rebuild!)))
 
 (define (tree-show-changes!)
   (when *tree*
-    (set-mode! 'changes)
-    (host-focus! 'tree)))
+    ;; showing the tree switches it to the files, so the mode comes after
+    (host-focus! 'tree)
+    (set-mode! 'changes)))
 
 ;; action: 'open, 'vsplit or 'hsplit. In changes mode 'open shows the diff and
 ;; 'file opens the file.
@@ -330,6 +336,11 @@
     [(equal? ch #\v) (activate! 'vsplit)]
     [(equal? ch #\s) (activate! 'hsplit)]
     [(equal? ch #\c) (set-mode! (if (changes?) 'files 'changes))]
+    [(equal? ch #\f) (tree-reveal-current!)]
+    [(equal? ch #\R) (refresh-all!)]
+    [(or (equal? ch #\+) (equal? ch #\>)) (set-width! (+ *width* 2))]
+    [(or (equal? ch #\-) (equal? ch #\<)) (set-width! (- *width* 2))]
+    [(equal? ch #\q) (host-hide! 'tree)]
     ;; the file operations work on the directory listing
     [(changes?) void]
     [(equal? ch #\a) (prompt-create!)]
@@ -337,11 +348,6 @@
     [(equal? ch #\d) (confirm-delete!)]
     [(equal? ch #\.) (toggle-hidden!)]
     [(equal? ch #\I) (toggle-ignored!)]
-    [(equal? ch #\R) (refresh-all!)]
-    [(equal? ch #\f) (tree-reveal-current!)]
-    [(or (equal? ch #\+) (equal? ch #\>)) (set-width! (+ *width* 2))]
-    [(or (equal? ch #\-) (equal? ch #\<)) (set-width! (- *width* 2))]
-    [(equal? ch #\q) (host-hide! 'tree)]
     [else void])
   (follow-diff!)
   (if (key-event-escape? event) #f event-result/consume))

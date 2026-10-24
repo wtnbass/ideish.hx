@@ -104,7 +104,8 @@
 
 ;;@doc
 ;; Focus the tree listing the files git reports as changed. Enter shows a
-;; file's diff against HEAD over the editor; c in the tree switches back.
+;; file's diff against HEAD over the editor; c in the tree switches back, as
+;; does hiding the tree and showing it again.
 (define (ideish-changes) (tree-show-changes!))
 
 ;;@doc

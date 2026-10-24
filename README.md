@@ -114,7 +114,7 @@ With the mouse, a click opens a file or toggles a directory, and the wheel scrol
 
 Git markers: `M` modified, `A` added, `U` untracked, `D` deleted, `R` renamed, `!` conflict. Ignored entries are dimmed.
 
-In changes mode the tree lists the changed files by path. Enter or a click shows a file's diff with focus, `l` shows it and keeps the keys in the tree, and while a diff is on screen it follows the cursor. `o`, `v` and `s` open the file itself; `a`, `r` and `d` do nothing.
+In changes mode the tree lists the changed files by path. Enter or a click shows a file's diff with focus, `l` shows it and keeps the keys in the tree, and while a diff is on screen it follows the cursor. `o`, `v` and `s` open the file itself; `a`, `r`, `d`, `.` and `I` do nothing. `c`, `f` and `:ideish-tree-reveal` go back to the files, closing the diff, as does showing the tree again after hiding it.
 
 ## Keys in the diff view
 
