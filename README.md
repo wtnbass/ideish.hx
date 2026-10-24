@@ -12,7 +12,7 @@ A UI layer for [Steel-enabled Helix](https://github.com/mattwparas/helix/blob/st
 | Breadcrumb | top bar, below the tabs | The file's path and the scopes around the cursor (function, class, heading, ...), read from the syntax tree |
 | Statusline | bottom bar | Mode, file, agent state, git branch, diagnostics, selections, language servers, file type, position |
 | Agent | right pane | A conversation with an [ACP](https://agentclientprotocol.com) agent: streaming replies, tool calls with diffs, permission prompts, interrupt, modes |
-| Terminal | bottom pane, below the statusline and the message row | A shell emulated by [libghostty-vt](https://github.com/uzaaft/libghostty-rs): colours from your terminal's palette, full-screen programs, scrollback. Optional, see below |
+| Terminal | bottom pane, below the statusline and the message row | A shell emulated by [alacritty_terminal](https://crates.io/crates/alacritty_terminal): colours from your terminal's palette, full-screen programs, scrollback |
 
 The breadcrumb knows Rust, Python, Go, JavaScript and TypeScript, C and C++, Java, C#, Ruby, Lua, Bash, Zig, Scheme, Markdown, TOML, JSON and YAML; other languages show the path only.
 
@@ -26,22 +26,12 @@ Buffers changed on disk are reloaded when they have no unsaved edits.
 - For the agent pane: the agent's ACP command on PATH. Only Claude is supported so far:
   `npm install -g @agentclientprotocol/claude-agent-acp`, then log in by running `claude` and `/login`.
   `:ideish-health` shows what is found.
-- For the terminal pane: Zig 0.16, to build libghostty-vt. `mise install` in this checkout installs the pinned version
-  (Zig 0.15 cannot link on macOS 26).
 
 ## Installation
 
 ```sh
 forge pkg install --git https://github.com/wtnbass/ideish.hx.git
 ```
-
-The terminal pane is left out of that build, so it needs no Zig. To include it, pass a cfg (forge cannot pass cargo features):
-
-```sh
-RUSTFLAGS="--cfg ideish_terminal" ZIG="$(mise which zig)" forge pkg install --git https://github.com/wtnbass/ideish.hx.git
-```
-
-`RUSTFLAGS` replaces any `build.rustflags` in your cargo config for this build. Without the cfg, `(ideish-terminal!)` still loads and `:ideish-health` says how to rebuild.
 
 In `init.scm`, enable the parts you want. The order does not matter:
 
@@ -95,7 +85,7 @@ t = ":ideish-toggle terminal"
 | `:ideish-agent-add-selection` / `:ideish-agent-add-file` | Attach the selection or the current file to the next prompt |
 | `:ideish-agent-new` / `:ideish-agent-cancel` / `:ideish-agent-stop` | New conversation / interrupt the turn / stop the agent |
 | `:ideish-toggle terminal` | Show the terminal with focus (starting the shell the first time), or hide it. The shell keeps running while hidden |
-| `:ideish-health` | Show which agents are installed and whether the terminal is built |
+| `:ideish-health` | Show which agents are installed and the shell the terminal starts |
 
 ## Keys in the tree
 
@@ -163,14 +153,14 @@ Every key goes to the shell, Esc included. `Ctrl-\` gives the keyboard back to t
 ## Development
 
 ```sh
-mise run install  # install this checkout with forge (cog and libideish); --terminal adds the terminal
+mise run install  # install this checkout with forge (cog and libideish)
 mise run test     # unit tests, under the steel CLI
 mise run smoke    # start Helix with dev/init.scm in tmux and check that the parts draw
 mise run icons    # regenerate icons/catalog.scm from nvim-web-devicons
 HELIX_STEEL_CONFIG=$PWD/dev hx   # try this checkout without touching your config
 ```
 
-With the dev config, `IDEISH_AGENT="node dev/fake-agent.mjs"` replaces the agent with a scripted one. `mise run smoke` skips the terminal checks when libideish was built without it. `STEEL_HOME=<dir> mise run smoke` runs against the libideish in `<dir>/native`, for example a build you do not want to put under the running Helix.
+With the dev config, `IDEISH_AGENT="node dev/fake-agent.mjs"` replaces the agent with a scripted one. `STEEL_HOME=<dir> mise run smoke` runs against the libideish in `<dir>/native`, for example a build you do not want to put under the running Helix.
 
 ## Credits
 

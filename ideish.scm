@@ -149,7 +149,7 @@
   (terminal-enable! #:height height #:command command))
 
 ;;@doc
-;; Show which agents are installed and whether the terminal is built: :ideish-health
+;; Show which agents are installed and the shell the terminal starts: :ideish-health
 (define (ideish-health)
   (define (section title lines) (cons title (map (lambda (l) (string-append "  " l)) lines)))
   (show-notice! "ideish health"

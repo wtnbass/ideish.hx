@@ -683,7 +683,6 @@ dependencies = [
  "abi_stable",
  "alacritty_terminal",
  "ignore",
- "libghostty-vt",
  "notify",
  "notify-debouncer-full",
  "portable-pty",
@@ -916,18 +915,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "int-enum"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e366a1634cccc76b4cfd3e7580de9b605e4d93f1edac48d786c1f867c0def495"
-dependencies = [
- "proc-macro2",
- "proc-macro2-diagnostics",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -987,21 +974,6 @@ name = "libc"
 version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
-
-[[package]]
-name = "libghostty-vt"
-version = "0.2.1"
-source = "git+https://github.com/uzaaft/libghostty-rs?rev=0ef80413de1326685743378efbfa06d849e041a7#0ef80413de1326685743378efbfa06d849e041a7"
-dependencies = [
- "bitflags 2.13.2",
- "int-enum",
- "libghostty-vt-sys",
-]
-
-[[package]]
-name = "libghostty-vt-sys"
-version = "0.2.1"
-source = "git+https://github.com/uzaaft/libghostty-rs?rev=0ef80413de1326685743378efbfa06d849e041a7#0ef80413de1326685743378efbfa06d849e041a7"
 
 [[package]]
 name = "libloading"
@@ -1312,18 +1284,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
 dependencies = [
  "unicode-ident",
-]
-
-[[package]]
-name = "proc-macro2-diagnostics"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af066a9c399a26e020ada66a034357a868728e72cd426f3adcd35f80d88d88c8"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
- "version_check",
 ]
 
 [[package]]

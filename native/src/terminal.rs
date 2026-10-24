@@ -6,12 +6,8 @@
 //! so drawing never touches the emulator.
 //!
 //! This file is the contract with Steel and does not depend on the emulator.
-//! The emulator (libghostty-vt) is in `ghostty.rs`, built only with
-//! `--cfg ideish_terminal`; without it every function still exists and
-//! `terminal-spawn` returns why, so Steel can tell the user.
-
-// without the emulator nothing reads what Steel sends
-#![cfg_attr(not(ideish_terminal), allow(dead_code))]
+//! The emulator (alacritty_terminal) is in `alacritty.rs`, and the bytes each
+//! key sends are worked out in `keys.rs`.
 
 use std::sync::{mpsc::Sender, Arc, Mutex};
 
@@ -21,13 +17,11 @@ use steel::{
     steel_vm::ffi::{FFIModule, FFIValue, IntoFFIVal, RegisterFFIFn},
 };
 
-#[cfg(ideish_terminal)]
-mod ghostty;
+mod alacritty;
 mod keys;
 
 pub fn register(module: &mut FFIModule) {
     module
-        .register_fn("terminal-built?", terminal_built)
         .register_fn("terminal-spawn", terminal_spawn)
         .register_fn("terminal-poll!", TerminalHandle::poll)
         .register_fn("terminal-rows", TerminalHandle::rows)
@@ -105,10 +99,6 @@ pub struct TerminalHandle {
 
 impl Custom for TerminalHandle {}
 
-fn terminal_built() -> bool {
-    cfg!(ideish_terminal)
-}
-
 fn size(n: isize) -> u16 {
     n.clamp(1, u16::MAX as isize) as u16
 }
@@ -117,7 +107,7 @@ fn size(n: isize) -> u16 {
 fn terminal_spawn(program: String, args: String, cwd: String, cols: isize, rows: isize) -> FFIValue {
     let screen = Arc::new(Mutex::new(Screen::default()));
     let args: Vec<&str> = args.split('\n').filter(|a| !a.is_empty()).collect();
-    match spawn(&program, &args, &cwd, size(cols), size(rows), Arc::clone(&screen)) {
+    match alacritty::spawn(&program, &args, &cwd, size(cols), size(rows), Arc::clone(&screen)) {
         Ok(Spawned { input, kill }) => TerminalHandle {
             input,
             screen,
@@ -127,30 +117,6 @@ fn terminal_spawn(program: String, args: String, cwd: String, cols: isize, rows:
         .unwrap_or(FFIValue::BoolV(false)),
         Err(message) => FFIValue::StringV(RString::from(message)),
     }
-}
-
-#[cfg(ideish_terminal)]
-fn spawn(
-    program: &str,
-    args: &[&str],
-    cwd: &str,
-    cols: u16,
-    rows: u16,
-    screen: Arc<Mutex<Screen>>,
-) -> Result<Spawned, String> {
-    ghostty::spawn(program, args, cwd, cols, rows, screen)
-}
-
-#[cfg(not(ideish_terminal))]
-fn spawn(
-    _program: &str,
-    _args: &[&str],
-    _cwd: &str,
-    _cols: u16,
-    _rows: u16,
-    _screen: Arc<Mutex<Screen>>,
-) -> Result<Spawned, String> {
-    Err("libideish was built without the terminal; rebuild it with RUSTFLAGS=\"--cfg ideish_terminal\"".into())
 }
 
 fn int(n: isize) -> FFIValue {

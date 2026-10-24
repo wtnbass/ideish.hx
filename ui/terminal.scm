@@ -18,8 +18,7 @@
 (require "../core/text.scm")
 
 (#%require-dylib "libideish"
-                 (only-in terminal-built?
-                          terminal-spawn
+                 (only-in terminal-spawn
                           terminal-poll!
                           terminal-rows
                           terminal-cursor
@@ -246,10 +245,7 @@
 ;;; health
 
 (define (terminal-health-lines)
-  (list (if (terminal-built?)
-            "built in"
-            "not built: rebuild libideish with RUSTFLAGS=\"--cfg ideish_terminal\" (see README)")
-        (string-append "shell: " (string-join (command-line) " "))))
+  (list (string-append "shell: " (string-join (command-line) " "))))
 
 ;;; setup
 

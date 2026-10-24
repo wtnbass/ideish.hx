@@ -1,8 +1,7 @@
 #!/bin/sh
 # Smoke test: start Helix with dev/init.scm in tmux and check that the bars,
 # the tree, a diff, the agent and the terminal draw. Layout and tree logic are
-# covered by `mise run test`. The terminal checks are skipped when libideish
-# was built without it (mise run install --terminal).
+# covered by `mise run test`.
 cd "$(dirname "$0")/.."
 ROOT=$PWD
 WS=$(mktemp -d)
@@ -67,27 +66,23 @@ expect "Summary" "agent pane shows the reply"
 tmux send-keys -t $S Escape; sleep 0.3
 tmux send-keys -t $S -l ':ideish-health'; tmux send-keys -t $S Enter
 expect "Terminal" "health shows the terminal"
-if screen | grep -q "not built: rebuild libideish"; then
-  echo "skip terminal (libideish was built without it)"
-else
-  # any key closes the health notice
-  tmux send-keys -t $S Escape; sleep 0.3; tmux send-keys -t $S Enter t
-  expect "sh-[0-9.]+\\$" "terminal pane shows the shell"
-  tmux send-keys -t $S -l 'echo ideish-$((1+1))'; tmux send-keys -t $S Enter
-  expect "ideish-2" "terminal runs a command"
-  expect "NORMAL" "statusline stays above the terminal"
-  # C-\ gives the keys back to the editor
-  tmux send-keys -t $S 'C-\'; sleep 0.3
-  tmux send-keys -t $S -l ':echo ideish-message'; tmux send-keys -t $S Enter
-  expect "^ *│? *ideish-message" "messages stay visible above the terminal"
-  # the editor then hides the pane
-  tmux send-keys -t $S Enter t
-  absent "ideish-2" "the editor hides the terminal again"
-  # the command that focuses the pane runs after the keys already queued
-  tmux send-keys -t $S Enter t; sleep 0.5
-  tmux send-keys -t $S -l 'exit'; tmux send-keys -t $S Enter
-  expect "terminal: sh exited" "exiting the shell closes the pane"
-fi
+# any key closes the health notice
+tmux send-keys -t $S Escape; sleep 0.3; tmux send-keys -t $S Enter t
+expect "sh-[0-9.]+\\$" "terminal pane shows the shell"
+tmux send-keys -t $S -l 'echo ideish-$((1+1))'; tmux send-keys -t $S Enter
+expect "ideish-2" "terminal runs a command"
+expect "NORMAL" "statusline stays above the terminal"
+# C-\ gives the keys back to the editor
+tmux send-keys -t $S 'C-\'; sleep 0.3
+tmux send-keys -t $S -l ':echo ideish-message'; tmux send-keys -t $S Enter
+expect "^ *│? *ideish-message" "messages stay visible above the terminal"
+# the editor then hides the pane
+tmux send-keys -t $S Enter t
+absent "ideish-2" "the editor hides the terminal again"
+# the command that focuses the pane runs after the keys already queued
+tmux send-keys -t $S Enter t; sleep 0.5
+tmux send-keys -t $S -l 'exit'; tmux send-keys -t $S Enter
+expect "terminal: sh exited" "exiting the shell closes the pane"
 
 [ $fail -eq 0 ] && echo "smoke test passed"
 exit $fail

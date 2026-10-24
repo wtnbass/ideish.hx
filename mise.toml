@@ -1,6 +1,4 @@
 [tools]
-# libghostty-vt (the terminal, built with --cfg ideish_terminal) needs this Zig (0.15 cannot link on macOS 26)
-zig = "0.16"
 # tools/gen-icons.py (mise run icons)
 python = "3.15"
 
@@ -11,13 +9,7 @@ run = 'for t in *-test.scm; do echo "== $t"; steel "$t" || exit 1; done'
 
 [tasks.install]
 description = "Install this checkout as the ideish cog and build libideish"
-usage = 'flag "--terminal" help="Add the terminal pane, built with the Zig pinned above"'
-run = '''
-if [ "${usage_terminal:-false}" = true ]; then
-  export RUSTFLAGS="--cfg ideish_terminal" ZIG="$(command -v zig)"
-fi
-forge install --force
-'''
+run = "forge install --force"
 
 [tasks.icons]
 description = "Regenerate icons/catalog.scm from nvim-web-devicons"
