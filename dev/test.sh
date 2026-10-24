@@ -1,7 +1,7 @@
 #!/bin/sh
 # Smoke test: start Helix with dev/init.scm in tmux and check that the bars,
 # the tree, a diff, the agent and the terminal draw. Layout and tree logic are
-# covered by `mise run test`.
+# covered by `make test`.
 cd "$(dirname "$0")/.."
 ROOT=$PWD
 WS=$(mktemp -d)

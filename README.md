@@ -153,14 +153,14 @@ Every key goes to the shell, Esc included. `Ctrl-\` gives the keyboard back to t
 ## Development
 
 ```sh
-mise run install  # install this checkout with forge (cog and libideish)
-mise run test     # unit tests, under the steel CLI
-mise run smoke    # start Helix with dev/init.scm in tmux and check that the parts draw
-mise run icons    # regenerate icons/catalog.scm from nvim-web-devicons
+make install  # install this checkout with forge (cog and libideish)
+make test     # unit tests, under the steel CLI
+make smoke    # start Helix with dev/init.scm in tmux and check that the parts draw
+make icons    # regenerate icons/catalog.scm from nvim-web-devicons
 HELIX_STEEL_CONFIG=$PWD/dev hx   # try this checkout without touching your config
 ```
 
-With the dev config, `IDEISH_AGENT="node dev/fake-agent.mjs"` replaces the agent with a scripted one. `STEEL_HOME=<dir> mise run smoke` runs against the libideish in `<dir>/native`, for example a build you do not want to put under the running Helix.
+With the dev config, `IDEISH_AGENT="node dev/fake-agent.mjs"` replaces the agent with a scripted one. `STEEL_HOME=<dir> make smoke` runs against the libideish in `<dir>/native`, for example a build you do not want to put under the running Helix.
 
 ## Credits
 
