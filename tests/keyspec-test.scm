@@ -1,0 +1,11 @@
+(require "check.scm")
+(require "../core/keyspec.scm")
+
+(check "a plain key" (parse-key "p") (list #f #\p))
+(check "a control key" (parse-key "C-p") (list 'ctrl #\p))
+(check "an alt key" (parse-key "A-x") (list 'alt #\x))
+(check "case is kept" (parse-key "C-P") (list 'ctrl #\P))
+(check "a named key is not taken" (parse-key "ret") #f)
+(check "two modifiers are not taken" (parse-key "C-A-p") #f)
+(check "an unknown modifier is not taken" (parse-key "S-p") #f)
+(check-summary!)

@@ -25,6 +25,9 @@
          host-hide!
          host-shown?
          host-rect-of
+         host-editor-area
+         host-has-part?
+         host-intercept-keys!
          host-show-editor!
          host-sync!
          host-request-redraw!)
@@ -97,6 +100,17 @@
 
 (define (host-rect-of name)
   (layout-rect-of *layout* name))
+
+;; The area the editor draws in, between the parts, or #f before the first frame
+(define (host-editor-area)
+  (and *size* *clip*
+       (area (list-ref *clip* 0)
+             (list-ref *clip* 2)
+             (max 0 (- (car *size*) (list-ref *clip* 0) (list-ref *clip* 1)))
+             (max 0 (- (cdr *size*) (list-ref *clip* 2) (list-ref *clip* 3))))))
+
+;; #t once the part is registered, e.g. after (ideish-tree!)
+(define (host-has-part? name) (if (find-part name) #t #f))
 
 ;; #t when the clip changed
 (define (relayout!)
@@ -172,6 +186,11 @@
 
 ;;; focus
 
+;; (event focused-part-name) -> #t when it took the key before the focused part
+;; sees it, as the menu key does in every pane
+(define *intercept* (lambda (_event _name) #f))
+(define (host-intercept-keys! handler) (set! *intercept* handler))
+
 (define (host-focused) *focused*)
 (define (host-focused? name) (equal? *focused* name))
 
@@ -193,6 +212,8 @@
          (unless (and q (equal? (part-kind q) 'pane))
            (host-show-editor!))))
      event-result/ignore]
+    [(and (key-event? event) (safe-call "intercept" (lambda () (*intercept* event *focused*))))
+     event-result/consume]
     [else
      (define result (and (part-key p) (safe-call "key" (lambda () ((part-key p) event)))))
      (cond

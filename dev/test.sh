@@ -28,6 +28,10 @@ expect() {
   echo "FAIL $2 (missing: $1)"; fail=1; [ -n "$SMOKE_DEBUG" ] && screen
 }
 
+# C-p opens the ideish menu, then the key picks an item. The menu is pushed
+# in a callback, so a key sent with C-p would reach the editor first.
+menu() { tmux send-keys -t $S C-p; sleep 0.3; tmux send-keys -t $S "$1"; }
+
 tmux kill-session -t $S 2>/dev/null
 # the session gets the tmux server's environment, so pass STEEL_HOME on
 tmux new-session -d -s $S -x 160 -y 30 "cd $WS && ${STEEL_HOME:+STEEL_HOME=$STEEL_HOME }SHELL=/bin/sh IDEISH_AGENT='node $ROOT/dev/fake-agent.mjs' HELIX_STEEL_CONFIG=$ROOT/dev hx a.txt src/main.rs"
@@ -38,9 +42,18 @@ expect "NORMAL" "statusline draws"
 expect " main" "statusline shows the git branch"
 expect "a\.txt .*main\.rs" "bufferline shows both buffers"
 expect "^ [^ ]+ a\.txt *$" "breadcrumb shows the focused file"
-tmux send-keys -t $S Space e
+tmux send-keys -t $S C-p
+expect "┌ ideish ─" "C-p shows the menu"
+expect "e +Toggle the tree" "the menu lists the tree"
+tmux send-keys -t $S e
+absent "┌ ideish ─" "a key in the menu closes it"
 expect "$(basename "$WS")" "tree header shows the workspace"
 expect "src" "tree lists the workspace"
+# the menu key reaches past a focused pane; Esc closes the menu and keeps the pane
+tmux send-keys -t $S C-p
+expect "┌ ideish ─" "C-p shows the menu over the tree"
+tmux send-keys -t $S Escape
+absent "┌ ideish ─" "Esc closes the menu"
 # a click below the entries focuses the tree, whose q then hides it
 tmux send-keys -t $S Escape; sleep 0.3
 tmux send-keys -t $S -l "$(printf '\033[<0;5;20M\033[<0;5;20m')"; sleep 0.5
@@ -56,20 +69,28 @@ expect "1 +- one" "the diff shows the old line"
 # q goes back to the tree, q hides it
 tmux send-keys -t $S q q
 absent "HEAD → working tree" "q closes the diff"
-tmux send-keys -t $S Space e
+menu e
 expect "$(basename "$WS")" "the tree shows the files again"
-# Esc then Enter too quickly reads as Alt-Enter
-tmux send-keys -t $S Escape; sleep 0.3; tmux send-keys -t $S Enter a
+# Esc then a key too quickly reads as Alt and the key
+tmux send-keys -t $S Escape; sleep 0.3; menu a
 expect "Fake Agent" "agent pane starts the agent"
 tmux send-keys -t $S -l "md"; tmux send-keys -t $S Enter
 expect "Summary" "agent pane shows the reply"
+tmux send-keys -t $S C-p
+expect "┌ ideish ─" "C-p shows the menu over the agent"
+tmux send-keys -t $S Escape
+absent "┌ ideish ─" "Esc closes the menu over the agent"
 
 tmux send-keys -t $S Escape; sleep 0.3
 tmux send-keys -t $S -l ':ideish-health'; tmux send-keys -t $S Enter
 expect "Terminal" "health shows the terminal"
 # any key closes the health notice
-tmux send-keys -t $S Escape; sleep 0.3; tmux send-keys -t $S Enter t
+tmux send-keys -t $S Escape; sleep 0.3; menu t
 expect "sh-[0-9.]+\\$" "terminal pane shows the shell"
+# without #:in-terminal the shell keeps C-p; C-u clears whatever it did
+tmux send-keys -t $S C-p
+absent "┌ ideish ─" "the terminal keeps C-p for the shell"
+tmux send-keys -t $S C-u
 tmux send-keys -t $S -l 'echo ideish-$((1+1))'; tmux send-keys -t $S Enter
 expect "ideish-2" "terminal runs a command"
 expect "NORMAL" "statusline stays above the terminal"
@@ -78,10 +99,10 @@ tmux send-keys -t $S 'C-\'; sleep 0.3
 tmux send-keys -t $S -l ':echo ideish-message'; tmux send-keys -t $S Enter
 expect "^ *│? *ideish-message" "messages stay visible above the terminal"
 # the editor then hides the pane
-tmux send-keys -t $S Enter t
+menu t
 absent "ideish-2" "the editor hides the terminal again"
 # the command that focuses the pane runs after the keys already queued
-tmux send-keys -t $S Enter t; sleep 0.5
+menu t; sleep 0.5
 tmux send-keys -t $S -l 'exit'; tmux send-keys -t $S Enter
 expect "terminal: sh exited" "exiting the shell closes the pane"
 

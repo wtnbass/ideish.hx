@@ -10,12 +10,9 @@
 ;;   (ideish-agent!)
 ;;   (ideish-terminal!)
 ;;
-;; and bind the commands in config.toml:
+;; and bind the menu, which lists every command, to one key:
 ;;
-;;   space.e = ":ideish-focus tree"
-;;   space.E = ":ideish-toggle tree"
-;;   ret.a = ":ideish-toggle agent"
-;;   ret.t = ":ideish-toggle terminal"
+;;   (ideish-menu! #:key "C-p")
 
 (require "core/host.scm")
 (require "core/theme.scm")
@@ -28,6 +25,9 @@
 (require "ui/agent.scm")
 (require "ui/terminal.scm")
 (require "ui/notice.scm")
+(require "ui/menu.scm")
+(require "core/keyspec.scm")
+(require "helix/keymaps.scm")
 (require "agent/registry.scm")
 
 (provide ideish-statusline!
@@ -49,7 +49,10 @@
          ideish-agent-new
          ideish-agent-stop
          ideish-agent-cancel
-         ideish-health)
+         ideish-health
+         ideish-menu
+         ideish-menu!
+         ideish-menu-defaults)
 
 ;;@doc
 ;; Replace the native statusline with ideish's, in the centre column above
@@ -157,3 +160,60 @@
                 (append (section "Agents" (agent-health-lines))
                         (list "")
                         (section "Terminal" (terminal-health-lines)))))
+
+;;; menu
+
+(define *menu-items* #f)
+
+;;@doc
+;; The items the menu shows unless ideish-menu! sets others, for the parts
+;; enabled so far. Each is (list key label action).
+(define (ideish-menu-defaults)
+  (define (toggle name) (lambda () (ideish-toggle name)))
+  (append
+   (if (host-has-part? 'tree)
+       (list (list "e" "Toggle the tree" (toggle "tree"))
+             (list "f" "Show the current file in the tree" ideish-tree-reveal)
+             (list "g" "List the changed files" ideish-changes))
+       '())
+   (list (list "d" "Diff the current file against HEAD" ideish-diff))
+   (if (host-has-part? 'agent)
+       (list (list "a" "Toggle the agent" (toggle "agent"))
+             (list "s" "Attach the selection to the prompt" ideish-agent-add-selection)
+             (list "A" "Attach the current file to the prompt" ideish-agent-add-file)
+             (list "n" "Start a new conversation" ideish-agent-new)
+             (list "c" "Interrupt the agent" ideish-agent-cancel))
+       '())
+   (if (host-has-part? 'terminal)
+       (list (list "t" "Toggle the terminal" (toggle "terminal")))
+       '())
+   (list (list "h" "Show the agents and the shell ideish finds" ideish-health))))
+
+;;@doc
+;; Bind the menu and set what it lists. #:key ("C-p", "A-m", ...) opens it in
+;; normal and select mode and in every pane; in the terminal only with
+;; #:in-terminal #t, since the shell uses such keys too. A character alone
+;; opens it from the editor only. #:items: a list of
+;; (list key label action), key a one-character string, action a thunk or a
+;; list of items for a submenu; (append (ideish-menu-defaults) (list ...))
+;; keeps the defaults.
+(define (ideish-menu! #:key [key #f] #:items [items #f] #:in-terminal [in-terminal #f])
+  (when items (set! *menu-items* items))
+  (when key
+    (define parsed (parse-key key))
+    (unless parsed
+      (error (string-append "ideish-menu!: " key " is not a key like \"C-p\"")))
+    (add-global-keybinding (hash "normal" (hash key ":ideish-menu")
+                                 "select" (hash key ":ideish-menu")))
+    ;; the panes take every key before the keymap, so the host hands this one over
+    (host-intercept-keys!
+     (lambda (event part)
+       (and (list-ref parsed 0)
+            (key-event-matches? event parsed)
+            (or in-terminal (not (equal? part 'terminal)))
+            (begin (ideish-menu) #t))))))
+
+;;@doc
+;; Show the menu of ideish commands; (ideish-menu! #:key "C-p") binds it
+(define (ideish-menu)
+  (show-menu! "ideish" (or *menu-items* (ideish-menu-defaults))))
