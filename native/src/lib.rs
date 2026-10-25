@@ -354,7 +354,8 @@ fn status_of(xy: &str) -> &'static str {
     }
 }
 
-/// `#(branch ahead behind #(path status path status ...))`. Paths are absolute,
+/// `#(branch ahead behind #(path status path status ...) head)`, where head is
+/// the commit HEAD points at (`(initial)` before the first). Paths are absolute,
 /// spelled from `root_given`, and limited to the workspace. Directories carry
 /// the most important status found below them.
 fn run_git_status(toplevel: &Path, root: &Path, root_given: &str) -> FFIValue {
@@ -379,6 +380,7 @@ fn run_git_status(toplevel: &Path, root: &Path, root_given: &str) -> FFIValue {
     let mut fields = text.split('\0');
 
     let mut branch = String::new();
+    let mut head = String::new();
     let (mut ahead, mut behind) = (0isize, 0isize);
     let mut statuses: HashMap<PathBuf, &'static str> = HashMap::new();
     let mut put = |path: &str, status: &'static str, propagate: bool| {
@@ -400,8 +402,10 @@ fn run_git_status(toplevel: &Path, root: &Path, root_given: &str) -> FFIValue {
     };
 
     while let Some(field) = fields.next() {
-        if let Some(head) = field.strip_prefix("# branch.head ") {
-            branch = head.to_string();
+        if let Some(oid) = field.strip_prefix("# branch.oid ") {
+            head = oid.to_string();
+        } else if let Some(name) = field.strip_prefix("# branch.head ") {
+            branch = name.to_string();
         } else if let Some(ab) = field.strip_prefix("# branch.ab ") {
             let mut parts = ab.split(' ');
             ahead = parts.next().and_then(|a| a.trim_start_matches('+').parse().ok()).unwrap_or(0);
@@ -441,5 +445,6 @@ fn run_git_status(toplevel: &Path, root: &Path, root_given: &str) -> FFIValue {
         FFIValue::IntV(ahead),
         FFIValue::IntV(behind),
         FFIValue::Vector(entries),
+        FFIValue::StringV(RString::from(head)),
     ]))
 }

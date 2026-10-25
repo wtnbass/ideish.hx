@@ -16,7 +16,7 @@ A UI layer for [Steel-enabled Helix](https://github.com/mattwparas/helix/blob/st
 
 The breadcrumb knows Rust, Python, Go, JavaScript and TypeScript, C and C++, Java, C#, Ruby, Lua, Bash, Zig, Scheme, Markdown, TOML, JSON and YAML; other languages show the path only.
 
-Buffers changed on disk are reloaded when they have no unsaved edits.
+Buffers changed on disk are reloaded when they have no unsaved edits. So are all such buffers when HEAD moves (a commit, a checkout, a reset), so the gutter compares them against the new HEAD.
 
 ## Requirements
 

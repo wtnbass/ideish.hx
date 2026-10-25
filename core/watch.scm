@@ -40,6 +40,8 @@
 (define *last-dirs* "")
 
 (define *branch* #f)
+;; the commit HEAD points at, #f until the first git status
+(define *head* #f)
 (define *ahead* 0)
 (define *behind* 0)
 (define *statuses* (hash))
@@ -99,7 +101,22 @@
     (when (and saved (system-time<? saved modified))
       (editor-document-reload doc))))
 
+;; Helix compares a buffer against HEAD and reads HEAD's copy only when the
+;; buffer is opened or reloaded, so a commit leaves the old changes in the
+;; gutter. Reload the buffers without unsaved edits to read it again.
+(define (reload-clean-documents!)
+  (for-each (lambda (doc)
+              (with-handler (lambda (_) void)
+                            (let ([path (editor-document->path doc)])
+                              (when (and path (not (editor-document-dirty? doc)) (path-exists? path))
+                                (editor-document-reload doc)))))
+            (editor-all-documents)))
+
 (define (apply-git-result! result)
+  (define head (list-ref result 4))
+  (when (and *head* (not (equal? head *head*)))
+    (reload-clean-documents!))
+  (set! *head* head)
   (set! *branch* (list-ref result 0))
   (set! *ahead* (list-ref result 1))
   (set! *behind* (list-ref result 2))
