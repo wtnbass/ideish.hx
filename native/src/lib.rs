@@ -354,10 +354,11 @@ fn status_of(xy: &str) -> &'static str {
     }
 }
 
-/// `#(branch ahead behind #(path status path status ...) head)`, where head is
-/// the commit HEAD points at (`(initial)` before the first). Paths are absolute,
-/// spelled from `root_given`, and limited to the workspace. Directories carry
-/// the most important status found below them.
+/// `#(branch ahead behind #(path status path status ...) head #(dir ...))`,
+/// where head is the commit HEAD points at (`(initial)` before the first) and
+/// the dirs are the untracked directories git listed without their contents.
+/// Paths are absolute, spelled from `root_given`, and limited to the workspace.
+/// Directories carry the most important status found below them.
 fn run_git_status(toplevel: &Path, root: &Path, root_given: &str) -> FFIValue {
     let output = Command::new("git")
         .args([
@@ -383,6 +384,7 @@ fn run_git_status(toplevel: &Path, root: &Path, root_given: &str) -> FFIValue {
     let mut head = String::new();
     let (mut ahead, mut behind) = (0isize, 0isize);
     let mut statuses: HashMap<PathBuf, &'static str> = HashMap::new();
+    let mut untracked_dirs: Vec<PathBuf> = Vec::new();
     let mut put = |path: &str, status: &'static str, propagate: bool| {
         let abs = toplevel.join(path.trim_end_matches('/'));
         let mut entry = Some(abs.as_path());
@@ -424,27 +426,32 @@ fn run_git_status(toplevel: &Path, root: &Path, root_given: &str) -> FFIValue {
                 put(path, "conflict", true);
             }
         } else if let Some(path) = field.strip_prefix("? ") {
+            if path.ends_with('/') {
+                untracked_dirs.push(toplevel.join(path.trim_end_matches('/')));
+            }
             put(path, "untracked", true);
         } else if let Some(path) = field.strip_prefix("! ") {
             put(path, "ignored", false);
         }
     }
 
+    let given = |path: &Path| {
+        let rel = path.strip_prefix(root).ok().filter(|rel| !rel.as_os_str().is_empty())?;
+        Some(FFIValue::StringV(RString::from(format!("{}/{}", root_given, rel.to_string_lossy()))))
+    };
     let mut entries = RVec::new();
     for (path, status) in statuses {
-        let Ok(rel) = path.strip_prefix(root) else { continue };
-        if rel.as_os_str().is_empty() {
-            continue;
-        }
-        let given = format!("{}/{}", root_given, rel.to_string_lossy());
-        entries.push(FFIValue::StringV(RString::from(given)));
+        let Some(given) = given(&path) else { continue };
+        entries.push(given);
         entries.push(FFIValue::StringV(RString::from(status)));
     }
+    let untracked_dirs: RVec<FFIValue> = untracked_dirs.iter().filter_map(|p| given(p)).collect();
     FFIValue::Vector(RVec::from(vec![
         FFIValue::StringV(RString::from(branch)),
         FFIValue::IntV(ahead),
         FFIValue::IntV(behind),
         FFIValue::Vector(entries),
         FFIValue::StringV(RString::from(head)),
+        FFIValue::Vector(untracked_dirs),
     ]))
 }

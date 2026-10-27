@@ -28,6 +28,7 @@
          git-behind
          git-status-of
          git-statuses
+         git-untracked-dir?
          git-revision)
 
 ;; git status runs this long after the last change, so a burst of writes
@@ -45,6 +46,8 @@
 (define *ahead* 0)
 (define *behind* 0)
 (define *statuses* (hash))
+;; untracked directories git listed without their contents
+(define *untracked-dirs* (hash))
 ;; bumped on every git update so parts can cache derived data
 (define *revision* 0)
 
@@ -60,6 +63,10 @@
 ;; every path git reported, directories included, as (path . status)
 (define (git-statuses)
   (map (lambda (path) (cons path (hash-ref *statuses* path))) (hash-keys->list *statuses*)))
+
+;; #t for a directory git reported as untracked as a whole. A directory that
+;; only holds new files also has the status 'untracked, but not this.
+(define (git-untracked-dir? path) (hash-contains? *untracked-dirs* path))
 
 ;; proc: (list-of-dirs) -> any
 (define (watch-on-dirs! proc)
@@ -125,6 +132,8 @@
           (if (or (null? xs) (null? (cdr xs)))
               acc
               (loop (cddr xs) (hash-insert acc (car xs) (string->symbol (cadr xs)))))))
+  (set! *untracked-dirs*
+        (foldl (lambda (dir acc) (hash-insert acc dir #t)) (hash) (list-ref result 5)))
   (set! *revision* (+ *revision* 1)))
 
 (define (handle! batch)

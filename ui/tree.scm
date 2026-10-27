@@ -401,15 +401,16 @@
     [else #f]))
 
 ;; git lists an untracked or ignored directory without its contents, so
-;; entries below one take its status
+;; entries below one take its status. A directory that is untracked only for
+;; the new files in it passes nothing to the tracked files beside them.
 (define (effective-status path)
   (or (git-status-of path)
       (let loop ([p (parent-path path)])
         (cond
           [(or (equal? p (root)) (not (path-within? p (root)))) #f]
-          [else
-           (let ([s (git-status-of p)])
-             (if (or (equal? s 'untracked) (equal? s 'ignored)) s (loop (parent-path p))))]))))
+          [(git-untracked-dir? p) 'untracked]
+          [(equal? (git-status-of p) 'ignored) 'ignored]
+          [else (loop (parent-path p))]))))
 
 (define (unsaved-paths)
   (foldl (lambda (id acc)
